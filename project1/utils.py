@@ -73,9 +73,11 @@ def apply_dedupe(authors):
     author_dict = {}
     for i, author in enumerate(authors):
         if author[1] != '' and author[2] != '':
+            author_name = unidecode(author[1] or '').replace('-.', ' ').replace('.', '').replace('-', ' ').upper()
+            affiliation_name = unidecode(author[2] or '').replace(',', '').replace('.', '').lower()
             author_dict[i] = {'PaperId': author[0],
-                              'Name': unidecode(author[1] or '').replace('-.', ' ').replace('.', '').replace('-', ' ').upper(),
-                              'Affiliation': unidecode(author[2] or '').replace(',', '').replace('.', '').lower()}
+                              'Name': author_name,
+                              'Affiliation': affiliation_name}
     deduper.sample(author_dict, 1000)
     dedupe.consoleLabel(deduper)
     deduper.train()
@@ -123,7 +125,7 @@ def hist_publication(df):
     """
     Using Altair to plot histogram of chart
     """
-    chart = Chart(df).mark_bar().encode(
+    chart = Chart(df).mark_bar(barSize=20).encode(
         color=Color(value='#fbb33a'),
         x=X('n_authors:Q', bin=Bin(maxbins=30), title='Number of authors in a poster'),
         y=Y('count(*):Q', title='Number of posters'),
@@ -157,3 +159,11 @@ if __name__ == '__main__':
     author_number_df = pd.DataFrame(author_number_list)
     author_df = author_number_df.merge(author_id_df, how='left') # final author number
     author_df.to_csv('author_id.csv', index=False)
+
+    G = create_collaboration_graph(author_df)
+    bet_cen = nx.betweenness_centrality(G) # betweenness centrality
+    deg_cen = nx.degree_centrality(G) # degree centrality
+    ben_cen_df = pd.DataFrame(list(bet_cen.items()), columns=['author_id', 'betweenness_centrality'])
+    deg_cen_df = pd.DataFrame(list(deg_cen.items()), columns=['author_id', 'degree_centrality'])
+    centrality_df = ben_cen_df.merge(deg_cen_df)
+    centrality_df.to_csv('centrality.csv', index=False)
