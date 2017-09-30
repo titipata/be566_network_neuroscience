@@ -105,14 +105,31 @@ def comm_laterality(partitions, categories):
         laterality = np.abs(n_0 - n_1)/n_nodes_in_i
         number_nodes_in_communities.append((n_nodes_in_i, n_0, n_1))
         comm_laterality.append((partition, laterality))
-    comm_laterality = np.array(comm_laterality)
     number_nodes_in_communities = np.array(number_nodes_in_communities)
+    total_number_in_comm_1 = np.sum(number_nodes_in_communities[2, :])
 
+    surrogate_laterality = []
     for _ in range(n_surrogates):
+        randomized_categories = np.zeros(shape=(n_nodes), dtype=np.int)
         rand_perm_assignment = np.random.permutation(range(n_nodes))
+        place_in_comm_1 = rand_perm_assignment[0:total_number_in_comm_1]
+        randomized_categories[place_in_comm_1] =  1
 
+        for partition in np.unique(partitions):
+            categories_i = categories[np.where(partitions == partition)]
+            n_nodes_in_i = len(categories_i)
+            n_0 = categories_count.get(categories_list[0], 0)
+            n_1 = categories_count.get(categories_list[1], 0)
+            rand_laterality  = np.abs(n_0 - n_1) / n_nodes_in_i
+            surrogate_laterality.append((partition, rand_laterality))
 
-    return comm_laterality_array
+    surrogate_laterality = np.array(surrogate_laterality)
+    expected_comm_laterality = np.sum(surrogate_laterality,axis = 1) / n_surrogates
+
+    net_laterality = (1/n_nodes) * np.dot(number_nodes_in_communities[:, 0], comm_laterality[0:n_communities, 1]) - expected_comm_laterality
+    comm_laterality.append((0, net_laterality))
+
+    return np.array(comm_laterality_array)
 
 
 def comm_radius(partitions, locations):
@@ -678,7 +695,7 @@ def community_louvain(W, gamma=1, ci=None, B='modularity', seed=None):
     return ci, q
 
 
-def multislice_static_unsigned(A, g_plus):
+def multislice_static_unsigned(A, g_plus=1):
     """
     Inputs
     ======
