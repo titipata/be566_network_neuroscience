@@ -528,9 +528,8 @@ def consensus_iterative(C):
     Reference:
     http://commdetect.weebly.com/uploads/4/9/5/9/49593677/consensus_iterative.m
     """
-
     return
-    
+
 
 def zrand(part1, part2):
     """
@@ -595,14 +594,15 @@ def zrand(part1, part2):
     C2 = 4*((np.power(nj, 3)).sum()) - 8 * (n+1) * M2 + n * (n * n - 3 * n - 2)
 
     vara = M/16 - np.power((4 * M1 - 2 * M), 2) * np.power((4 * M2 - 2 * M), 2)/(256 * M * M) + \
-        C1*C2/(16*n*(n-1)*(n-2)) + \
-        (np.power((4 * M1 - 2 * M), 2) - 4 * C1 - 4 * M) * (np.power((4*M2-2*M),2) - 4 * C2 - 4 * M)/(64 * n * (n-1) * (n-2)*(n-3))
+        C1 * C2/(16 * n * (n - 1) * (n - 2)) + \
+        (np.power((4 * M1 - 2 * M), 2) - 4 * C1 - 4 * M) * \
+        (np.power((4 * M2 - 2 * M),2) - 4 * C2 - 4 * M)/(64 * n * (n-1) * (n-2) * (n-3))
 
     zRand = (a - meana) / np.sqrt(vara)
 
     c1 = set(part1);
     c2 = set(part2);
-    H1, H2, I =0, 0, 0
+    H1, H2, I = 0, 0, 0
     for i in c1:
         pi = np.double(ni[i])/n
         H1 = H1 - pi * np.log(pi)
@@ -641,7 +641,19 @@ def consensus_similarity(C):
     pairwise_simm,	pairwise similarity matrix
     """
 
-    return
+    n_part, _ = C.shape
+    pairwise_simm = np.zeros((n_part, n_part))
+    for i in range(n_part):
+        for j in range(n_part):
+            pairwise_simm[i, j] = zrand(C[i, :], C[j, :])
+    pairwise_simm = pairwise_simm + pairwise_simm.T
+
+    average_pairwise_simm = np.sum(pairwise_simm, axis=1) / (n_part - 1)
+    idx = np.argmax(average_pairwise_simm)
+    consensus = C[idx, :]
+    consensus_simm = max(average_pairwise_simm)
+
+    return consensus, consensus_simm, pairwise_simm
 
 
 def community_louvain(W, gamma=1, ci=None, B='modularity', seed=None):
