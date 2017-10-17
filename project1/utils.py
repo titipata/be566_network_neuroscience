@@ -9,6 +9,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+
 def parse_text_with_sup(text):
     """
     Parse given affiliation text to list of author and affiliation
@@ -93,9 +94,11 @@ def apply_dedupe(authors):
     aid = author_ids[-1][0]
     for author in authors_unique:
         aid = aid + 1
-        author_ids.append({'author_id': aid, 'author_number': author})
-    author_id_df = pd.DataFrame(author_ids)
+        author_ids.append((aid, author))
+    author_id_df = pd.DataFrame(author_ids,
+                                columns=['author_id', 'author_number'])
     return author_id_df
+
 
 def create_collaboration_graph(author_df):
     """
@@ -144,8 +147,8 @@ if __name__ == '__main__':
     authors = list()
     for i, row in df.iterrows():
         for a in row['parsed_authors']:
-            if len(row['parsed_authors']) > 0]) and a[1] is not '':
-                authors.extend((row['presentation_id'], a[0].replace('*', ''), a[1]))
+            if len(row['parsed_authors']) > 0 and a[1] is not '':
+                authors.append((row['presentation_id'], str(a[0].lower().replace('*', '')), a[1].lower()))
 
     # applying deduplication algorithm
     author_id_df = apply_dedupe(authors)
