@@ -12,17 +12,23 @@ def calculate_entropy(p, alpha=2):
     Generalized Jensen-Shannon Divergence
     ref: https://arxiv.org/abs/1706.08671
     """
-    return 1 - (np.sum(p) ** 2)
+    if alpha == 1:
+        H = - np.sum(p * np.log(p))
+    elif alpha == 2:
+        H = 1 - np.sum(np.square(p))
+    else:
+        H = (np.sum(np.square(p)) - 1) / (1 - alpha)
+    return H
 
 
-def distance_language(p1, p2):
+def distance_language(p1, p2, alpha=2):
     """
     Distance between two articles using Jensen-Shannon Divergence
-    with alpha = 2
+    with given alpha
     """
-    h1 = calculate_entropy(p1)
-    h2 = calculate_entropy(p2)
-    h12 = calculate_entropy((p1 + p2)/2)
+    h1 = calculate_entropy(p1, alpha)
+    h2 = calculate_entropy(p2, alpha)
+    h12 = calculate_entropy((p1 + p2)/2, alpha)
     d_lang = ((2 * h12) - h1 - h2)/ (0.5 * (2 - h1 - h2))
     return d_lang
 
@@ -46,7 +52,7 @@ def clustering(D_lang):
     """
     Hierarchical clustering on language matrix
     """
-    linkage = fastcluster.linkage(D_lang_array,
+    linkage = fastcluster.linkage(D_lang,
                                   method='centroid',
                                   preserve_input=True)
     partition = hcluster.fcluster(linkage,
