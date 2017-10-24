@@ -1,23 +1,28 @@
 import numpy as np
 import scipy.sparse as sp
+from itertools import combinations
+from collections import Counter
 from sklearn.feature_extraction.text import CountVectorizer
 from scipy.spatial.distance import cdist, pdist
+from sklearn.metrics.pairwise import pairwise_distances
 import fastcluster
 import hcluster
-from collections import Counter
 
 
-def calculate_entropy(p, alpha=2):
+def calculate_entropy(p, alpha):
     """
     Generalized Jensen-Shannon Divergence
     ref: https://arxiv.org/abs/1706.08671
     """
-    if alpha == 1:
-        H = - np.sum(p * np.log(p))
-    elif alpha == 2:
-        H = 1 - np.sum(np.square(p))
+    if not sp.issparse(p):
+        p = sp.csr_matrix(p.ravel())
     else:
-        H = (np.sum(np.square(p)) - 1) / (1 - alpha)
+        if alpha == 1:
+            H = - np.sum(p.data * np.log(p.data))
+        elif alpha == 2:
+            H = 1 - (p.data ** 2).sum()
+        else:
+            H = ((p.data ** alpha).sum() - 1)/ (1 - alpha)
     return H
 
 
@@ -28,23 +33,23 @@ def distance_language(p1, p2, alpha=2):
     """
     h1 = calculate_entropy(p1, alpha)
     h2 = calculate_entropy(p2, alpha)
-    h12 = calculate_entropy((p1 + p2)/2, alpha)
+    h12 = calculate_entropy((p1 + p2) / 2, alpha)
     d_lang = ((2 * h12) - h1 - h2)/ (0.5 * (2 - h1 - h2))
     return d_lang
 
 
-def calculate_entropy_dist(abstracts):
+def calculate_entropy_dist(abstracts, sparse=True):
     """
     Calculate entropy distance matrix between documents
     """
+    count_vec_model = CountVectorizer(max_df=0.8, min_df=4,
+                                      stop_words='english',
+                                      lowercase=True)
     X = count_vec_model.fit_transform(abstracts)
     n_samples, n_features = X.shape
     gf = np.ravel(X.sum(axis=0))
     P = (X * sp.spdiags(1./gf, diags=0, m=n_features, n=n_features))
-    P = P.toarray()
-    d_lang = pdist(P, lambda u, v: distance_language(u, v))
-    D_lang = squareform(d_lang)
-    D_lang = np.nan_to_num(D_lang)
+    D_lang = pairwise_distances(P, metric=distance_language)
     return D_lang
 
 
